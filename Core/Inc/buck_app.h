@@ -8,7 +8,7 @@
 
 #define BUCK_VERSION "0.1.0"
 
-/* A/B 비교 비트. 정지 상태에서 원하는 비트만 더해 buck_feature_request에 씁니다. */
+/* Live Expressions에서 buck_feature_request에 켤 기능의 값을 더해 씁니다. 7은 모두 ON, 6/5/3은 각각 한 기능만 OFF입니다. */
 #define BUCK_FEATURE_VIN_FF      (1u << 0) /* 실측 Vin 피드포워드. OFF 기준은 정격 30 V */
 #define BUCK_FEATURE_TRACKING_AW (1u << 1) /* 적용 듀티와 요청 듀티 차이의 적분기 보정 */
 #define BUCK_FEATURE_RUN_SLEW    (1u << 2) /* 기동 검증을 통과한 뒤의 듀티 상승률 제한 */
@@ -62,7 +62,7 @@ void Buck_EmergencyOff(void);
  * 시작 조건: buck_board.h의 BUCK_BOARD_VERIFIED=1, 영점 보정 완료,
  * 유효한 센서 값과 ADC/TIM/DMA 설정, 실측으로 확인한 배선과 게이트 파형. */
 extern volatile uint32_t buck_arm_request;
-/* 기동 명령에 적용할 A/B 설정. 운전 중 바꿔도 적용 중인 설정은 유지됩니다.
+/* 다음 기동에 요청할 값(0~7)입니다. 현재 적용값은 buck_debug.active_features에서 읽습니다.
  * 알 수 없는 비트가 켜진 상태로 기동을 요청하면 F_SETUP으로 차단됩니다. */
 extern volatile uint32_t buck_feature_request;
 

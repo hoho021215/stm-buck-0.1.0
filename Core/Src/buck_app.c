@@ -167,7 +167,7 @@ static void frame(uint32_t half)
         }
     }
     if (request==1u && b.state==DISARMED && b.calibrated && BUCK_BOARD_VERIFIED) {
-        const uint32_t features = buck_feature_request;
+        const uint32_t features = buck_feature_request; /* 정지 상태에서 기동 요청을 받을 때 한 번 읽습니다. */
         if (features & ~BUCK_FEATURE_ALL) trip(F_SETUP);
         else if (vin<23.0f || vin>36.0f) trip(F_VIN);
         else if (vout>0.5f) trip(F_PREBIAS);
@@ -226,14 +226,16 @@ static void frame(uint32_t half)
                 b.aw=0.0f; b.prop=0.005f*error;
             }
             if (++b.phase==5u) b.phase=0u;
-            /* OFF 비교군도 정격점(15 V / 30 V = 듀티 0.5)에서 운전할 수 있도록
-             * 고정 공칭 입력을 적용합니다. 설정은 수락된 기동 때 한 번 읽습니다. */
+            /* 입력전압 피드포워드 ON은 실측 Vin, OFF는 공칭 30 V를 사용합니다.
+             * 두 경우 모두 정격점(15 V / 30 V)에서 기본 듀티는 0.5입니다. */
             float feedforward_vin = (b.active_features & BUCK_FEATURE_VIN_FF) ? vin : 30.0f;
             float requested=b.ref/feedforward_vin+b.prop+b.integ;
             float applied=clamp(requested,0.0f,b.cap);
+            /* 기동 확인 전에는 항상 상승률을 제한하고, 확인 후에는 RUN_SLEW 선택을 따릅니다. */
             if (!b.checked || (b.active_features & BUCK_FEATURE_RUN_SLEW)) {
                 applied=clamp(applied,0.0f,b.duty+1.0f/50000.0f);
             }
+            /* ON이면 이번 듀티 제한량을 다음 적분 갱신에 반영합니다. OFF여도 적분기 상하한은 적용됩니다. */
             if (b.active_features & BUCK_FEATURE_TRACKING_AW) {
                 b.aw+=50.0f*(applied-requested)/50000.0f;
             }
